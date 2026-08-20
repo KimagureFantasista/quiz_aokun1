@@ -9,13 +9,14 @@
     .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
     .btn { display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; border: none; background: #4caf50; color: white; border-radius: 8px; cursor: pointer; }
     .btn:active { background: #45a049; }
+    .explanation { margin-top: 12px; font-size: 15px; color: #333; font-weight: normal; text-align: left; background: #f9f9f9; padding: 10px; border-radius: 6px; border-left: 4px solid #ff4d4f; }
   </style>
 </head>
 <body>
   <div class="card">
     <h2 id="question">問題を読み込み中...</h2>
     <div id="options"></div>
-    <p id="result" style="font-weight: bold; font-size: 20px;"></p>
+    <div id="result" style="font-weight: bold; font-size: 20px;"></div>
   </div>
 
   <script>
@@ -35,8 +36,9 @@
         const cols = row.split(',');
         return {
           q: cols[1],
-          options: [cols[2], cols[3], cols[4], cols[5]].filter(Boolean), // 空の選択肢を除外（3択にも対応）
-          ans: parseInt(cols[6])
+          options: [cols[2], cols[3], cols[4], cols[5]].filter(Boolean), // 空の選択肢を除外
+          ans: parseInt(cols[6]),
+          exp: cols[7] ? cols[7].trim() : '' // H列（8列目）の解説を取得
         };
       });
       showQuestion();
@@ -46,11 +48,12 @@
       if (currentIdx >= quizzes.length) {
         document.getElementById('question').innerText = "全問終了！おつかれさま！";
         document.getElementById('options').innerHTML = '';
+        document.getElementById('result').innerHTML = '';
         return;
       }
       const q = quizzes[currentIdx];
       document.getElementById('question').innerText = `第${currentIdx + 1}問: ${q.q}`;
-      document.getElementById('result').innerText = '';
+      document.getElementById('result').innerHTML = '';
       
       const container = document.getElementById('options');
       container.innerHTML = '';
@@ -58,24 +61,30 @@
         const btn = document.createElement('button');
         btn.className = 'btn';
         btn.innerText = opt;
-        btn.onclick = () => checkAnswer(idx + 1, q.ans);
+        btn.onclick = () => checkAnswer(idx + 1, q.ans, q.exp);
         container.appendChild(btn);
       });
     }
 
-    function checkAnswer(selected, correct) {
+    function checkAnswer(selected, correct, explanation) {
       const resultEl = document.getElementById('result');
+      let delay = 1200; // 正解時の表示時間（1.2秒）
+
       if (selected === correct) {
-        resultEl.innerText = "⭕ 正解！";
-        resultEl.style.color = "green";
+        resultEl.innerHTML = '<span style="color: green;">⭕ 正解！</span>';
       } else {
-        resultEl.innerText = "❌ ざんねん！";
-        resultEl.style.color = "red";
+        let html = '<span style="color: red;">❌ ざんねん！</span>';
+        if (explanation) {
+          html += `<div class="explanation">💡 <b>解説:</b> ${explanation}</div>`;
+        }
+        resultEl.innerHTML = html;
+        delay = 3500; // 解説を読むため不正解時は3.5秒表示
       }
+      
       setTimeout(() => {
         currentIdx++;
         showQuestion();
-      }, 1200);
+      }, delay);
     }
 
     loadQuiz();
