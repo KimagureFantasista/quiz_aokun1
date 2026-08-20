@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>わくわくクイズ</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f8ff; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+    .btn { display: block; width: 100%; margin: 10px 0; padding: 15px; font-size: 18px; border: none; background: #4caf50; color: white; border-radius: 8px; cursor: pointer; }
+    .btn:active { background: #45a049; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="question">問題を読み込み中...</h2>
+    <div id="options"></div>
+    <p id="result" style="font-weight: bold; font-size: 20px;"></p>
+  </div>
+
+  <script>
+    // Step 1で取得したGoogleスプレッドシートの「Webに公開（CSV）」URLをここに貼り付けます
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/1hbpitTX3-JkQNePDf6MZ6yT1tPRW8r8gf9x0dJGywAA/edit?usp=drive_link';
+
+    let quizzes = [];
+    let currentIdx = 0;
+
+    // CSVをパースしてクイズを表示する処理
+    async function loadQuiz() {
+      const response = await fetch(CSV_URL);
+      const text = await response.text();
+      const rows = text.split('\n').slice(1); // ヘッダー行を除外
+      
+      quizzes = rows.map(row => {
+        const cols = row.split(',');
+        return {
+          q: cols[1],
+          options: [cols[2], cols[3], cols[4], cols[5]].filter(Boolean), // 空の選択肢を除外（3択にも対応）
+          ans: parseInt(cols[6])
+        };
+      });
+      showQuestion();
+    }
+
+    function showQuestion() {
+      if (currentIdx >= quizzes.length) {
+        document.getElementById('question').innerText = "全問終了！おつかれさま！";
+        document.getElementById('options').innerHTML = '';
+        return;
+      }
+      const q = quizzes[currentIdx];
+      document.getElementById('question').innerText = `第${currentIdx + 1}問: ${q.q}`;
+      document.getElementById('result').innerText = '';
+      
+      const container = document.getElementById('options');
+      container.innerHTML = '';
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(idx + 1, q.ans);
+        container.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(selected, correct) {
+      const resultEl = document.getElementById('result');
+      if (selected === correct) {
+        resultEl.innerText = "⭕ 正解！";
+        resultEl.style.color = "green";
+      } else {
+        resultEl.innerText = "❌ ざんねん！";
+        resultEl.style.color = "red";
+      }
+      setTimeout(() => {
+        currentIdx++;
+        showQuestion();
+      }, 1200);
+    }
+
+    loadQuiz();
+  </script>
+</body>
+</html>
